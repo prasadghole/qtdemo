@@ -19,35 +19,126 @@ Infrastructure       EventBus.h            (std::mutex, std::thread)
                      WorkerThread.h
 ```
 
-## Prerequisites (WSL Ubuntu)
+## Prerequisites
 
-Run the provided build script — it will install everything automatically:
-
-```bash
-chmod +x build.sh
-./build.sh
-```
-
-Or install manually:
+### Host (WSL Ubuntu)
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y cmake make g++ qtbase5-dev qtbase5-dev-tools
+sudo apt-get install -y cmake ninja-build build-essential \
+    gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
+    qtbase5-dev qtbase5-dev-tools \
+    gdb-multiarch
+```
+
+### Raspberry Pi CM5 (target)
+
+```bash
+sudo apt install gdbserver
 ```
 
 ## Build
 
+All build targets are driven by `make`. Ninja is used as the CMake generator.
+
+| Target | Description |
+|--------|-------------|
+| `make native` | Build for WSL x86_64 (output: `build_native/`) |
+| `make pi` | Cross-compile for CM5 ARM64, Debug symbols included (output: `build_pi/`) |
+| `make clean` | Remove all build directories |
+| `make docker-image` | Build the Docker cross-compiler image |
+| `make docker-build-native` | Native build inside Docker |
+| `make docker-build-pi` | Pi cross-compile inside Docker |
+
+### Native (WSL)
+
 ```bash
-./build.sh
+make native
 ```
 
-Or manually:
+### Cross-compile for Raspberry Pi CM5
 
 ```bash
-mkdir -p build
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
-cmake --build build --parallel
+make pi
 ```
+
+The Pi build is always configured as `Debug` so DWARF symbols are present for remote debugging.
+
+### Docker builds
+
+```bash
+make docker-image          # one-time image build
+make docker-build-pi       # cross-compile inside container
+make docker-build-native   # native build inside container
+```
+
+## Remote Debugging on CM5 with Qt Creator
+
+Cross-debug workflow: GDB runs on the host, `gdbserver` runs on the CM5, Qt Creator connects the two.
+
+### 1. Deploy the binary
+
+After `make pi`, copy the binary to the CM5 (keep debug symbols — do not strip):
+
+```bash
+scp build_pi/Qt5DecoupledDemo pi@<CM5_IP>:/home/pi/
+```
+
+### 2. Start gdbserver on CM5
+
+SSH into the CM5 and run:
+
+```bash
+gdbserver :2345 /home/pi/Qt5DecoupledDemo
+```
+
+The process waits for the debugger to connect before starting.
+
+### 3. Configure Qt Creator — Debugger
+
+`Tools → Kits → Debuggers → Add`
+
+| Field | Value |
+|-------|-------|
+| Name | `aarch64-gdb` |
+| Path | `/usr/bin/aarch64-linux-gnu-gdb` |
+
+### 4. Configure Qt Creator — Device
+
+`Tools → Devices → Add → Generic Linux Device`
+
+| Field | Value |
+|-------|-------|
+| Host | `<CM5_IP>` |
+| SSH port | `22` |
+| Username | `pi` |
+
+### 5. Configure Qt Creator — Kit
+
+`Tools → Kits → Add`
+
+| Field | Value |
+|-------|-------|
+| Name | `Pi CM5 (ARM64)` |
+| Device type | Generic Linux Device |
+| Device | the device added above |
+| Sysroot | `/usr/lib/aarch64-linux-gnu` |
+| Compiler C | `aarch64-linux-gnu-gcc` |
+| Compiler C++ | `aarch64-linux-gnu-g++` |
+| Debugger | `aarch64-gdb` |
+| CMake generator | Ninja |
+
+### 6. Attach Qt Creator to gdbserver
+
+`Debug → Start Debugging → Attach to Running Debug Server`
+
+| Field | Value |
+|-------|-------|
+| Kit | `Pi CM5 (ARM64)` |
+| Local executable | `build_pi/Qt5DecoupledDemo` |
+| Server | `<CM5_IP>:2345` |
+
+Qt Creator connects GDB on the host to gdbserver on the CM5. Breakpoints, stepping, and variable inspection all work over the network. The local binary is used only for symbol resolution — execution happens entirely on the CM5.
 
 ## Run
 
