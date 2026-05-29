@@ -28,8 +28,12 @@ sudo apt-get update
 sudo apt-get install -y cmake ninja-build build-essential \
     gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
     qtbase5-dev qtbase5-dev-tools \
+    qtbase5-dev:arm64 libqt5widgets5t64:arm64 \
     gdb-multiarch
 ```
+
+The `:arm64` packages are the multiarch ARM64 Qt5 libraries — needed for GDB
+symbol resolution during remote debugging (the host never runs them).
 
 ### Raspberry Pi CM5 (target)
 
@@ -94,45 +98,186 @@ gdbserver :2345 /home/pi/Qt5DecoupledDemo
 
 The process waits for the debugger to connect before starting.
 
-### Remote Debugging with Qt Creator
+---
 
-`Tools → Kits → Debuggers → Add`
+## Remote Debugging with Qt Creator
+
+Qt Creator's remote debug pipeline for a Generic Linux Device works in three phases:
+
+```
+Build  →  cmake --build build_pi --target all
+Deploy →  cmake --build build_pi --target install  (stages to /tmp, rsync to Pi)
+Debug  →  gdb-multiarch on host  ←TCP 2345→  gdbserver on Pi
+```
+
+Everything below is a one-time setup. After it is done, pressing the debug button
+handles all three phases automatically.
+
+### Step 1 — Install ARM64 multiarch packages (host)
+
+These provide the aarch64 Qt5 libraries GDB reads for symbol resolution:
+
+```bash
+sudo apt-get install -y \
+    gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
+    qtbase5-dev:arm64 libqt5widgets5t64:arm64 \
+    gdb-multiarch
+```
+
+### Step 2 — Create the GDB sysroot (host, run once)
+
+GDB prepends the sysroot to every library path reported by the Pi. The script
+builds a directory at `/opt/pi-sysroot` that mirrors the Pi's filesystem layout
+using symlinks into the multiarch packages installed above:
+
+```bash
+sudo ./setup-pi-sysroot.sh
+```
+
+Expected output confirms these paths are reachable through the sysroot:
+
+```
+/opt/pi-sysroot/lib/ld-linux-aarch64.so.1          ← dynamic linker (fixes timeout)
+/opt/pi-sysroot/lib/aarch64-linux-gnu/libQt5Core.so.5
+/opt/pi-sysroot/lib/aarch64-linux-gnu/libQt5Widgets.so.5
+```
+
+Without this step Qt Creator times out on connect with:
+> *Unable to find dynamic linker breakpoint function*
+
+### Step 3 — Register the aarch64 Qt version
+
+Qt Creator ships on Qt6 internally but targets whatever Qt version you register.
+You need a separate entry for the ARM64 Qt5 qmake — different from the default
+x86_64 one.
+
+`Edit → Preferences → Qt Versions → Add`
 
 | Field | Value |
 |-------|-------|
-| Name | `aarch64-gdb` |
-| Path | `/usr/bin/aarch64-linux-gnu-gdb` |
+| qmake path | `/usr/lib/aarch64-linux-gnu/qt5/bin/qmake` |
 
-**Configure Device:** `Tools → Devices → Add → Generic Linux Device`
+Qt Creator detects it as **Qt 5.15.13 (aarch64)** automatically.
+
+### Step 4 — Register the cross-compilers
+
+`Edit → Preferences → Kits → Compilers → Add → GCC → C++`
 
 | Field | Value |
 |-------|-------|
+| Name | `aarch64-g++` |
+| Compiler path | `/usr/bin/aarch64-linux-gnu-g++` |
+| ABI | `aarch64-linux-generic-elf-64bit` |
+
+Repeat for C (`Add → GCC → C`), pointing to `/usr/bin/aarch64-linux-gnu-gcc`.
+
+### Step 5 — Register the debugger
+
+`Edit → Preferences → Kits → Debuggers → Add`
+
+| Field | Value |
+|-------|-------|
+| Name | `gdb-multiarch` |
+| Path | `/usr/bin/gdb-multiarch` |
+
+> Use `gdb-multiarch`, not `aarch64-linux-gnu-gdb`. The multiarch build
+> handles all architectures and is what Ubuntu ships.
+
+### Step 6 — Register the Pi as a device
+
+`Edit → Preferences → Devices → Add → Generic Linux Device`
+
+| Field | Value |
+|-------|-------|
+| Name | `Pi CM5` |
 | Host | `<CM5_IP>` |
 | SSH port | `22` |
 | Username | `pi` |
+| Authentication | Password or SSH key |
 
-**Configure Kit:** `Tools → Kits → Add`
+Click **Test** to verify SSH connectivity before continuing.
+
+### Step 7 — Create the Pi CM5 kit
+
+`Edit → Preferences → Kits → Add`
 
 | Field | Value |
 |-------|-------|
-| Name | `Pi CM5 (ARM64)` |
+| Name | `Pi CM5 (ARM64 Qt5)` |
 | Device type | Generic Linux Device |
-| Device | the device added above |
-| Sysroot | `/usr/lib/aarch64-linux-gnu` |
-| Compiler C | `aarch64-linux-gnu-gcc` |
-| Compiler C++ | `aarch64-linux-gnu-g++` |
-| Debugger | `aarch64-gdb` |
+| Device | `Pi CM5` |
+| Sysroot | `/opt/pi-sysroot` |
+| Compiler C | `aarch64-gcc` |
+| Compiler C++ | `aarch64-g++` |
+| Debugger | `gdb-multiarch` |
+| Qt version | `Qt 5.15.13 (aarch64)` |
 | CMake generator | Ninja |
+| CMake configuration — add | `CMAKE_TOOLCHAIN_FILE=/home/pg/qtdemos/qtadapter/pi_toolchain.cmake` |
 
-**Attach Qt Creator to gdbserver:** `Debug → Start Debugging → Attach to Running Debug Server`
+The kit shows a yellow warning until all fields are filled. It turns green once
+compiler ABI matches the Qt version ABI (both aarch64).
+
+> **Common error:** *"compiler aarch64 cannot produce code for Qt 5.15.13"*
+> This means the Qt version field is still pointing at the x86_64 qmake entry.
+> Change it to the aarch64 entry registered in Step 3.
+
+### Step 8 — Activate the kit for this project
+
+Creating a kit globally does not automatically apply it to open projects.
+
+1. Press `Ctrl+5` (Projects mode) or click the wrench icon in the left sidebar
+2. Under **Build & Run**, click **Add Kit** and select `Pi CM5 (ARM64 Qt5)`
+3. Wait for CMake configure to complete — check the Issues panel for errors
+
+### Step 9 — Configure GDB startup commands
+
+`Edit → Preferences → Debugger → GDB → Additional Startup Commands`
+
+Add:
+```
+set solib-search-path /usr/lib/aarch64-linux-gnu
+```
+
+This is a fallback: if any library path does not resolve through the sysroot,
+GDB searches this directory directly.
+
+### Step 10 — Debug session workflow
+
+Every debug session follows this sequence:
+
+**On the Pi** (once per session):
+```bash
+gdbserver :2345 /home/pi/Qt5DecoupledDemo
+# prints: Listening on port 2345
+```
+
+**In Qt Creator:**
+```
+Debug → Start Debugging → Attach to Running Debug Server
+```
 
 | Field | Value |
 |-------|-------|
-| Kit | `Pi CM5 (ARM64)` |
+| Kit | `Pi CM5 (ARM64 Qt5)` |
 | Local executable | `build_pi/Qt5DecoupledDemo` |
 | Server | `<CM5_IP>:2345` |
 
-Qt Creator connects GDB on the host to gdbserver on the CM5. Breakpoints, stepping, and variable inspection all work over the network. The local binary is used only for symbol resolution — execution happens entirely on the CM5.
+Qt Creator connects `gdb-multiarch` on the host to `gdbserver` on the Pi.
+The binary executes entirely on the Pi; the local copy is used only for
+DWARF symbol resolution. Breakpoints, stepping, and variable inspection
+all work over the network.
+
+### Troubleshooting
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| Kit not shown in debug dialog | Kit not activated for project | `Ctrl+5` → Add Kit |
+| Kit shows error (yellow/red) | ABI mismatch or missing debugger | Check Qt version is aarch64, debugger is set |
+| Qt Creator times out on connect | GDB sysroot missing dynamic linker | Re-run `setup-pi-sysroot.sh`, set Kit Sysroot to `/opt/pi-sysroot` |
+| "Could not load shared library symbols" | Wrong or missing sysroot | Verify `/opt/pi-sysroot/lib/aarch64-linux-gnu/` contains Qt5 libs |
+| gdbserver exits immediately | Binary not deployed to Pi | `scp build_pi/Qt5DecoupledDemo pi@<IP>:/home/pi/` |
+
+---
 
 ### Remote Debugging with VSCode
 

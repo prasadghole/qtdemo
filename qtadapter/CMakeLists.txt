@@ -69,3 +69,8 @@ target_compile_options(${PROJECT_NAME} PRIVATE
 
 message(STATUS "Qt5 version: ${Qt5_VERSION}")
 message(STATUS "Build type:  ${CMAKE_BUILD_TYPE}")
+
+# ── Install (used by Qt Creator's deploy-to-device step) ─────────────────────
+install(TARGETS ${PROJECT_NAME}
+    RUNTIME DESTINATION /home/pg
+)
