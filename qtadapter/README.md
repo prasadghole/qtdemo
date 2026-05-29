@@ -72,9 +72,9 @@ make docker-build-pi       # cross-compile inside container
 make docker-build-native   # native build inside container
 ```
 
-## Remote Debugging on CM5 with Qt Creator
+## Remote Debugging on CM5
 
-Cross-debug workflow: GDB runs on the host, `gdbserver` runs on the CM5, Qt Creator connects the two.
+Cross-debug workflow: GDB runs on the host, `gdbserver` runs on the CM5, your debugger connects the two.
 
 ### 1. Deploy the binary
 
@@ -94,7 +94,7 @@ gdbserver :2345 /home/pi/Qt5DecoupledDemo
 
 The process waits for the debugger to connect before starting.
 
-### 3. Configure Qt Creator — Debugger
+### Remote Debugging with Qt Creator
 
 `Tools → Kits → Debuggers → Add`
 
@@ -103,9 +103,7 @@ The process waits for the debugger to connect before starting.
 | Name | `aarch64-gdb` |
 | Path | `/usr/bin/aarch64-linux-gnu-gdb` |
 
-### 4. Configure Qt Creator — Device
-
-`Tools → Devices → Add → Generic Linux Device`
+**Configure Device:** `Tools → Devices → Add → Generic Linux Device`
 
 | Field | Value |
 |-------|-------|
@@ -113,9 +111,7 @@ The process waits for the debugger to connect before starting.
 | SSH port | `22` |
 | Username | `pi` |
 
-### 5. Configure Qt Creator — Kit
-
-`Tools → Kits → Add`
+**Configure Kit:** `Tools → Kits → Add`
 
 | Field | Value |
 |-------|-------|
@@ -128,9 +124,7 @@ The process waits for the debugger to connect before starting.
 | Debugger | `aarch64-gdb` |
 | CMake generator | Ninja |
 
-### 6. Attach Qt Creator to gdbserver
-
-`Debug → Start Debugging → Attach to Running Debug Server`
+**Attach Qt Creator to gdbserver:** `Debug → Start Debugging → Attach to Running Debug Server`
 
 | Field | Value |
 |-------|-------|
@@ -139,6 +133,20 @@ The process waits for the debugger to connect before starting.
 | Server | `<CM5_IP>:2345` |
 
 Qt Creator connects GDB on the host to gdbserver on the CM5. Breakpoints, stepping, and variable inspection all work over the network. The local binary is used only for symbol resolution — execution happens entirely on the CM5.
+
+### Remote Debugging with VSCode
+
+**Setup:**
+1. Replace `<REMOTE_IP>` in `.vscode/launch.json` with your target device IP
+2. On the remote device, start gdbserver (see step 2 above)
+3. In VSCode, select the **"Debug Remote Pi (ARM64 via gdbserver)"** configuration
+4. Press **F5** to start debugging
+
+**How it works:**
+- VSCode uses `aarch64-linux-gnu-gdb` (cross-debugger) on the host
+- The `target remote` command in setupCommands connects to gdbserver on CM5
+- Source maps help navigate between WSL and remote paths
+- All breakpoints, stepping, and inspection work the same as local debugging
 
 ## Run
 

@@ -2,7 +2,7 @@ FROM ubuntu:noble
 ENV DEBIAN_FRONTEND=noninteractive
 
 # 1. Install foundational tools (All packages explicitly on one line)
-RUN apt-get update && apt-get install -y make ninja-build build-essential gdb-multiarch gcc-aarch64-linux-gnu g++-aarch64-linux-gnu cmake git pkg-config && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y make ninja-build build-essential gdb-multiarch cgdb gcc-aarch64-linux-gnu g++-aarch64-linux-gnu cmake git pkg-config && rm -rf /var/lib/apt/lists/*
 
 # 2. Configure Multiarch for ARM64 (Ubuntu Ports)
 RUN dpkg --add-architecture arm64
