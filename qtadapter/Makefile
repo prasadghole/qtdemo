@@ -36,7 +36,7 @@ native:
 pi:
 	@echo "==> Configuring and cross-compiling for Raspberry Pi CM5 (ARM64)..."
 	mkdir -p $(BUILD_PI_DIR)
-	cd $(BUILD_PI_DIR) && cmake -G Ninja -DCMAKE_TOOLCHAIN_FILE=../$(TOOLCHAIN_FILE) ..
+	cd $(BUILD_PI_DIR) && cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE=../$(TOOLCHAIN_FILE) ..
 	ninja -C $(BUILD_PI_DIR)
 
 clean:
