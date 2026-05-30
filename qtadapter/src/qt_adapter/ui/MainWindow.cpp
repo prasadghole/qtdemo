@@ -25,6 +25,8 @@ void MainWindow::setupUi() {
     auto* valueRow = new QHBoxLayout();
     auto* valueTitle = new QLabel("Value:", this);
     valueLabel_ = new QLabel("--", this);
+    valueLabel_->setObjectName("valueLabel");
+    valueLabel_->setAccessibleName("sensor value");
     QFont valFont = valueLabel_->font();
     valFont.setPointSize(22);
     valFont.setBold(true);
@@ -34,6 +36,8 @@ void MainWindow::setupUi() {
     valueRow->addStretch();
 
     valueBar_ = new QProgressBar(this);
+    valueBar_->setObjectName("valueBar");
+    valueBar_->setAccessibleName("value bar");
     valueBar_->setRange(0, 100);
     valueBar_->setValue(0);
     valueBar_->setTextVisible(true);
@@ -42,8 +46,12 @@ void MainWindow::setupUi() {
     auto* statusRow = new QHBoxLayout();
     auto* catLabel = new QLabel("Category:", this);
     categoryLabel_ = new QLabel("--", this);
+    categoryLabel_->setObjectName("categoryLabel");
+    categoryLabel_->setAccessibleName("category");
     auto* almLabel = new QLabel("Alarm:", this);
     alarmLabel_ = new QLabel("OK", this);
+    alarmLabel_->setObjectName("alarmLabel");
+    alarmLabel_->setAccessibleName("alarm status");
     alarmLabel_->setStyleSheet("color: green; font-weight: bold;");
     statusRow->addWidget(catLabel);
     statusRow->addWidget(categoryLabel_);
@@ -61,9 +69,15 @@ void MainWindow::setupUi() {
     auto* ctrlLayout = new QHBoxLayout(ctrlGroup);
 
     startBtn_ = new QPushButton("Start worker", this);
+    startBtn_->setObjectName("startBtn");
+    startBtn_->setAccessibleName("Start worker");
     stopBtn_  = new QPushButton("Stop worker", this);
+    stopBtn_->setObjectName("stopBtn");
+    stopBtn_->setAccessibleName("Stop worker");
     stopBtn_->setEnabled(false);
     statusLabel_ = new QLabel("Worker stopped", this);
+    statusLabel_->setObjectName("statusLabel");
+    statusLabel_->setAccessibleName("worker status");
     statusLabel_->setStyleSheet("color: gray;");
 
     ctrlLayout->addWidget(startBtn_);
@@ -76,6 +90,8 @@ void MainWindow::setupUi() {
     auto* logGroup = new QGroupBox("Event log (last 50)", this);
     auto* logLayout = new QVBoxLayout(logGroup);
     logList_ = new QListWidget(this);
+    logList_->setObjectName("logList");
+    logList_->setAccessibleName("event log");
     logList_->setMaximumHeight(180);
     logLayout->addWidget(logList_);
 
