@@ -120,6 +120,23 @@ $(BUILD_PI_QT)/build.ninja:
 	    -S $(ROOT_DIR) -B $(BUILD_PI_QT)
 
 $(BUILD_PI_WX)/build.ninja:
+	@if [ -z "$(wxWidgets_ROOT_DIR)" ] && \
+	    [ ! -f /usr/lib/aarch64-linux-gnu/wx/config/gtk3-unicode-3.2 ]; then \
+	    echo ""; \
+	    echo "ERROR: ARM64 wxWidgets not found. Choose one option:"; \
+	    echo ""; \
+	    echo "  Option A — install Debian multiarch package (fast):"; \
+	    echo "    sudo apt-get install -y libwxgtk3.2-dev:arm64"; \
+	    echo "    make pi-wx"; \
+	    echo ""; \
+	    echo "  Option B — build in Docker (no local install needed):"; \
+	    echo "    make docker-pi-wx"; \
+	    echo ""; \
+	    echo "  Option C — point to a pre-built ARM64 wxWidgets:"; \
+	    echo "    make pi-wx wxWidgets_ROOT_DIR=/path/to/wx-arm64"; \
+	    echo ""; \
+	    exit 1; \
+	fi
 	@echo "==> [configure] pi-wx (wxWidgets, ARM64, Debug)"
 	@mkdir -p $(BUILD_PI_WX)
 	$(CMAKE) -G Ninja \

@@ -3,7 +3,9 @@ set(CMAKE_SYSTEM_PROCESSOR aarch64)
 
 # ── Sysroot ───────────────────────────────────────────────────────────────────
 set(SYSROOT /usr/aarch64-linux-gnu)
-set(CMAKE_FIND_ROOT_PATH ${SYSROOT})
+# Include multiarch lib dir so find_library() can resolve ARM64 .so files
+# installed via Debian/Ubuntu multiarch packages (e.g. libwxgtk3.2-dev:arm64)
+set(CMAKE_FIND_ROOT_PATH ${SYSROOT} /usr/lib/aarch64-linux-gnu)
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
@@ -26,7 +28,14 @@ set(CMAKE_PREFIX_PATH
 set(ENV{PKG_CONFIG_LIBDIR} "/usr/lib/aarch64-linux-gnu/pkgconfig")
 
 # ── wxWidgets ARM64 path (used when GUI_ADAPTER=wx) ───────────────────────────
-# Set by Docker: ENV wxWidgets_ROOT_DIR=/opt/wx-arm64
+# Priority 1: explicit cmake -DwxWidgets_ROOT_DIR=... or env var (Docker path)
+# Priority 2: Debian/Ubuntu multiarch package (libwxgtk3.2-dev:arm64)
+set(_WX_MULTIARCH_CONFIG /usr/lib/aarch64-linux-gnu/wx/config/gtk3-unicode-3.2)
 if(DEFINED ENV{wxWidgets_ROOT_DIR})
     set(wxWidgets_ROOT_DIR $ENV{wxWidgets_ROOT_DIR})
+elseif(NOT DEFINED wxWidgets_ROOT_DIR AND EXISTS "${_WX_MULTIARCH_CONFIG}")
+    set(wxWidgets_CONFIG_EXECUTABLE "${_WX_MULTIARCH_CONFIG}"
+        CACHE FILEPATH "ARM64 wx-config from libwxgtk3.2-dev:arm64")
+    message(STATUS "wxWidgets ARM64 : using multiarch config ${_WX_MULTIARCH_CONFIG}")
 endif()
+unset(_WX_MULTIARCH_CONFIG)
