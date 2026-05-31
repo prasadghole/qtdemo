@@ -1,0 +1,37 @@
+FROM ubuntu:noble
+ENV DEBIAN_FRONTEND=noninteractive
+
+# MinGW cross-compiler
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    ninja-build \
+    git \
+    wget \
+    pkg-config \
+    mingw-w64 \
+    mingw-w64-tools \
+    mingw-w64-x86-64-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Build wxWidgets 3.2.5 for Windows (MinGW, static, monolithic)
+RUN mkdir -p /wxWidgets && \
+    cd /wxWidgets && \
+    wget -q https://github.com/wxWidgets/wxWidgets/releases/download/v3.2.5/wxWidgets-3.2.5.tar.bz2 && \
+    tar -xjf wxWidgets-3.2.5.tar.bz2 && \
+    cd wxWidgets-3.2.5 && \
+    mkdir build-mingw && cd build-mingw && \
+    ../configure \
+        --host=x86_64-w64-mingw32 \
+        --prefix=/opt/wx-mingw \
+        --with-msw \
+        --disable-shared \
+        --enable-monolithic && \
+    make -j$(nproc) && make install && \
+    cd / && rm -rf /wxWidgets
+
+WORKDIR /workspace
+
+ENV wxWidgets_ROOT_DIR=/opt/wx-mingw
+
+CMD ["make", "windows-wx"]

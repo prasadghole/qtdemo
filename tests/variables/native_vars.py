@@ -1,0 +1,5 @@
+BINARY_PATH = "/home/user/qtdemo/qtadapter/build_native/Qt5DecoupledDemo"
+DISPLAY = ":99"
+PI_HOST = ""
+PI_USER = ""
+PI_BINARY = ""

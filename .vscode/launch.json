@@ -1,0 +1,84 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Qt5Demo (Native)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build_native_qt/adapters/qt/SensorDemoQt",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                { "name": "DISPLAY", "value": ":0" }
+            ],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set disassembly flavor",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "Debug Remote Pi (ARM64 via gdbserver)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build_pi_qt/adapters/qt/SensorDemoQt",
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb-multiarch",
+            "miDebuggerServerAddress": "192.168.29.16:2345",
+            "sourceMap": {
+                "/home/pi": "${workspaceFolder}"
+            },
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set disassembly flavor",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ],
+            "stopAtEntry": false
+        },
+        {
+            "name": "Attach to Remote Pi (running GUI process)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build_pi_qt/adapters/qt/SensorDemoQt",
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb-multiarch",
+            "miDebuggerServerAddress": "192.168.29.16:2345",
+            "sourceMap": {
+                "/home/pi": "${workspaceFolder}"
+            },
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set disassembly flavor",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ],
+            "stopAtEntry": false
+        }
+    ]
+}

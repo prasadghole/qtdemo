@@ -1,0 +1,16 @@
+FROM ubuntu:noble
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    ninja-build \
+    git \
+    pkg-config \
+    wx-common \
+    libwxgtk3.2-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+
+CMD ["make", "native-wx"]
