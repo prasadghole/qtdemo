@@ -1,0 +1,34 @@
+# Build directories
+build_native/
+build_windows/
+build_pi/
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Binary outputs
+*.o
+*.so
+*.a
+*.lib
+*.exe
+*.dll
+WxWidgetDemo
+WxWidgetDemo.exe
+*.app
+
+# Dependencies
+/opt/
+/wxWidgets/
