@@ -8,7 +8,10 @@ set(SYSROOT /usr/aarch64-linux-gnu)
 set(CMAKE_FIND_ROOT_PATH ${SYSROOT} /usr/lib/aarch64-linux-gnu)
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
-set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+# BOTH: FindwxWidgets uses find_path() with absolute paths from wx-config;
+# ONLY mode prepends the sysroot and misses arch-independent headers in
+# /usr/include/wx-3.2 that come from the wx3.2-headers package.
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE BOTH)
 
 # ── Cross-compiler ────────────────────────────────────────────────────────────
 set(CMAKE_C_COMPILER   aarch64-linux-gnu-gcc)
